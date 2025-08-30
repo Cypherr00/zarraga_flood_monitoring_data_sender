@@ -1,6 +1,6 @@
 // db_config.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:digital_twin_data_sender/models/flood_level.dart';
+
 
 class DbConfig {
   final SupabaseClient _client = Supabase.instance.client;
@@ -35,44 +35,115 @@ class DbConfig {
   }
 
   // In db_config.dart (or wherever your DbConfig class is)
-  Future<List<FloodLevel>> getFloodLevelHistory(String filter) async {
-    // Normalize the filter coming from UI
+  Future<List<Map<String, dynamic>>> getFloodLevelHistory(String filter) async {
+    final client = Supabase.instance.client; // or use your _client
+
+    // normalize filter
     final String normalized = switch (filter) {
       '1d' => '1d',
       '1m' => '1m',
       'all' => 'all',
-      _ => '1d', // default to last day for safety
+      _ => '1d',
     };
 
-    // Compute cutoff in UTC (important when DB stores timestamptz)
+    // cutoff in UTC
     final nowUtc = DateTime.now().toUtc();
     DateTime? cutoff;
     if (normalized == '1d') {
       cutoff = nowUtc.subtract(const Duration(days: 1));
     } else if (normalized == '1m') {
-      // Approximate 1 month as 30 days; adjust if you prefer calendar logic
       cutoff = nowUtc.subtract(const Duration(days: 30));
-    } else {
-      cutoff = null; // 'all'
     }
 
-    // Build the query step-by-step so we can conditionally add filters
-    var query = _client
-        .from('SensorsData')
+    // 1) fetch sensors
+    var sensorsQuery = client
+        .from('WaterLevelDataa')
         .select('id, user_id, meters, created_at');
 
     if (cutoff != null) {
-      // Use UTC ISO format
+      sensorsQuery = sensorsQuery.gte('created_at', cutoff.toIso8601String());
+    }
+
+    final sensorsResp = await sensorsQuery.order('created_at', ascending: false);
+    final List sensors = sensorsResp as List<dynamic>;
+
+    // If no sensor rows, return empty
+    if (sensors.isEmpty) return [];
+
+    // collect sensor ids
+    final List sensorIds = sensors.map((s) => s['id']).where((id) => id != null).toList();
+
+    // 2) fetch alerts that reference those sensor ids (if any)
+    List alerts = [];
+    if (sensorIds.isNotEmpty) {
+      final alertsResp = await client
+          .from('Alerts')
+          .select('id, water_level_id, threat_level, message_advisory, time, meters')
+          .eq('water_level_id', sensorIds)
+          .order('time', ascending: false);
+      alerts = alertsResp as List<dynamic>;
+    }
+
+    // 3) group alerts by water_level_id and pick the latest by 'time'
+    final Map<dynamic, Map<String, dynamic>> latestAlertBySensor = {};
+
+    for (final a in alerts) {
+      final Map<String, dynamic> alert = Map<String, dynamic>.from(a as Map);
+      final key = alert['water_level_id'];
+      if (key == null) continue;
+
+      if (!latestAlertBySensor.containsKey(key)) {
+        latestAlertBySensor[key] = alert;
+      } else {
+        final existing = latestAlertBySensor[key]!;
+        final existingTime = DateTime.tryParse(existing['time']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final candidateTime = DateTime.tryParse(alert['time']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        if (candidateTime.isAfter(existingTime)) {
+          latestAlertBySensor[key] = alert;
+        }
+      }
+    }
+
+    // 4) merge: attach 'alert' object (nullable) to each sensor row
+    final merged = sensors.map<Map<String, dynamic>>((s) {
+      final Map<String, dynamic> sensor = Map<String, dynamic>.from(s as Map);
+      sensor['alert'] = latestAlertBySensor[sensor['id']]; // either a Map or null
+      return sensor;
+    }).toList();
+
+    return merged;
+  }
+
+  Future<List<Map<String, dynamic>>> getFloodLevelHistoryRaw(String filter) async {
+    final normalized = switch (filter) {
+      '1d' => '1d',
+      '1m' => '1m',
+      'all' => 'all',
+      _ => '1d',
+    };
+
+    final nowUtc = DateTime.now().toUtc();
+    DateTime? cutoff;
+    if (normalized == '1d') {
+      cutoff = nowUtc.subtract(const Duration(days: 1));
+    } else if (normalized == '1m') {
+      cutoff = nowUtc.subtract(const Duration(days: 30));
+    }
+
+    var query = _client.from('WaterLevelDataa').select(
+      'id, user_id, meters, created_at, Alerts(threat_level, message_advisory)',
+    );
+
+    if (cutoff != null) {
       query = query.gte('created_at', cutoff.toIso8601String());
     }
 
     final response = await query.order('created_at', ascending: false);
-
-    return (response as List)
-        .map((e) => FloodLevel.fromMap(e))
-        .toList();
+    return List<Map<String, dynamic>>.from(response as List);
   }
 
+
+//------------------------------------------------------------------
   Future<void> sendData({
     required String userName,
     required double meters,
@@ -90,9 +161,9 @@ class DbConfig {
 
     final userId = user['id'];
 
-    // Insert into SensorsData and return the inserted row (with ID)
+    // Insert into WaterLevelDataa and return the inserted row (with ID)
     final insertedWaterLevel = await _client
-        .from('SensorsData')
+        .from('WaterLevelDataa')
         .insert({
       'meters': meters,
       'user_id': userId,
@@ -118,7 +189,7 @@ class DbConfig {
       }
 
       await _client.from('Alerts').insert({
-        'water_level_id': waterLevelId, // FK to SensorsData
+        'water_level_id': waterLevelId, // FK to WaterLevelData
         'message_advisory': message_advisory,
         'threat_level': threatLevel,
         'meters': meters,
