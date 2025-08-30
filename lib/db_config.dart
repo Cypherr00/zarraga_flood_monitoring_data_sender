@@ -81,6 +81,7 @@ class DbConfig {
       throw Exception("The maximum river depth measure is 4.");
     }
 
+    // Get the user ID
     final user = await _client
         .from("user")
         .select("id")
@@ -89,11 +90,43 @@ class DbConfig {
 
     final userId = user['id'];
 
-    await _client.from('SensorsData').insert({
+    // Insert into SensorsData and return the inserted row (with ID)
+    final insertedWaterLevel = await _client
+        .from('SensorsData')
+        .insert({
       'meters': meters,
       'user_id': userId,
-    });
+    })
+        .select()
+        .single();
+
+    final waterLevelId = insertedWaterLevel['id'];
+
+    if (meters > 2) {
+      String threatLevel = "low";
+      String message_advisory = "Water level exceeded 1m";
+
+      if (meters > 4) {
+        threatLevel = "Critical";
+        message_advisory = "Threat Level: Critical - Immediate evacuation required. Follow emergency services instructions.";
+      } else if (meters > 3) {
+        threatLevel = "High";
+        message_advisory = "Threat Level: High - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
+      } else if (meters > 2) {
+        threatLevel = "Low";
+        message_advisory = "Threat Level: Low - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+      }
+
+      await _client.from('Alerts').insert({
+        'water_level_id': waterLevelId, // FK to SensorsData
+        'message_advisory': message_advisory,
+        'threat_level': threatLevel,
+        'meters': meters,
+      });
+    }
+
   }
+
 }
 
 
