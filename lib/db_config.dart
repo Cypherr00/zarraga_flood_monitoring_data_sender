@@ -57,7 +57,7 @@ class DbConfig {
 
     // 1) fetch sensors
     var sensorsQuery = client
-        .from('WaterLevelDataa')
+        .from('WaterLevelData')
         .select('id, user_id, meters, created_at');
 
     if (cutoff != null) {
@@ -130,7 +130,7 @@ class DbConfig {
       cutoff = nowUtc.subtract(const Duration(days: 30));
     }
 
-    var query = _client.from('WaterLevelDataa').select(
+    var query = _client.from('WaterLevelData').select(
       'id, user_id, meters, created_at, Alerts(threat_level, message_advisory)',
     );
 
@@ -163,7 +163,7 @@ class DbConfig {
 
     // Insert into WaterLevelDataa and return the inserted row (with ID)
     final insertedWaterLevel = await _client
-        .from('WaterLevelDataa')
+        .from('WaterLevelData')
         .insert({
       'meters': meters,
       'user_id': userId,

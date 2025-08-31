@@ -28,6 +28,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
+  Color _getThreatColor(String level) {
+    switch (level.toLowerCase()) {
+      case "low":
+        return Colors.green;
+      case "medium":
+        return Colors.orange;
+      case "high":
+        return Colors.redAccent;
+      case "critical":
+        return Colors.red.shade900;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getThreatIcon(String level) {
+    switch (level.toLowerCase()) {
+      case "low":
+        return Icons.check_circle;
+      case "medium":
+        return Icons.warning;
+      case "high":
+      case "critical":
+        return Icons.error;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,7 +101,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   itemBuilder: (context, index) {
                     final record = Map<String, dynamic>.from(history[index]);
 
-                    // created_at may be String or DateTime
                     final createdRaw = record['created_at'];
                     DateTime? createdAt;
                     if (createdRaw is DateTime) {
@@ -84,7 +112,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ? DateFormat("MMM d, yyyy • hh:mm a").format(createdAt)
                         : "Unknown date";
 
-                    // meters formatting
                     final metersRaw = record['meters'];
                     final String metersStr = metersRaw == null
                         ? "N/A"
@@ -94,10 +121,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                     final userId = record['user_id']?.toString() ?? "Unknown";
 
-                    // ALERT extraction: handle multiple shapes:
-                    //  - 'alert' : Map or null
-                    //  - 'Alerts' : List (possibly empty)
-                    //  - other variants
                     final dynamic alertRaw =
                         record['alert'] ?? record['Alerts'] ?? record['alerts'];
 
@@ -105,62 +128,93 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     if (alertRaw is Map) {
                       alertMap = Map<String, dynamic>.from(alertRaw);
                     } else if (alertRaw is List && alertRaw.isNotEmpty) {
-                      // take first alert row (Supabase nested select may return list)
                       final first = alertRaw.first;
                       if (first is Map) alertMap = Map<String, dynamic>.from(first);
-                    } else {
-                      alertMap = null;
                     }
 
                     final threatLevel = alertMap?['threat_level']?.toString() ?? "None";
                     final advisory = alertMap?['message_advisory']?.toString() ?? "";
 
+                    final threatColor = _getThreatColor(threatLevel);
+                    final threatIcon = _getThreatIcon(threatLevel);
+
                     return Card(
+                      elevation: 3,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       child: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                        padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // header
+                            // header row
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Icon(Icons.water_drop, color: Colors.blue, size: 28),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "$metersStr meters",
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.water_drop,
+                                        color: Colors.blue, size: 28),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      "$metersStr m",
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text("User: $userId"),
-                                      Text(formattedDate),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    Icon(threatIcon, color: threatColor),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      threatLevel,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: threatColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
 
-                            // always show threat level (main ask)
-                            Text("Threat: $threatLevel",
-                                style: const TextStyle(fontSize: 14)),
+                            // metadata
+                            Text("User: $userId",
+                                style: TextStyle(color: Colors.grey[700])),
+                            Text(formattedDate,
+                                style: TextStyle(color: Colors.grey[600])),
 
-                            // advisory only shown if present
                             if (advisory.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text("Advisory: $advisory", style: const TextStyle(fontSize: 14)),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(Icons.info,
+                                        color: Colors.blue, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        advisory,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ],
                         ),
