@@ -12,7 +12,6 @@ class DbConfig {
         .select('user_name')
         .eq('user_name', userName)
         .maybeSingle();
-
     return response != null;
   }
 
@@ -28,11 +27,21 @@ class DbConfig {
     return response['pin'] == pin;
   }
 
+  Future<int> getIdUsingUserName(String userName) async {
+    final response = await _client
+        .from('user')
+        .select('id')
+        .eq('user_name', userName)
+        .single();
+    return response as int;
+  }
+
   // Fetch all users
   Future<List<String>> getAllUsers() async {
     final response = await _client.from('user').select('user_name');
     return (response as List).map((e) => e['user_name'] as String).toList();
   }
+
 
   // In db_config.dart (or wherever your DbConfig class is)
   Future<List<Map<String, dynamic>>> getFloodLevelHistory(String filter) async {
@@ -145,21 +154,12 @@ class DbConfig {
 
 //------------------------------------------------------------------
   Future<void> sendData({
-    required String userName,
+    required int userId,
     required double meters,
   }) async {
     if (meters < 0 || meters > 4) {
       throw Exception("The maximum river depth measure is 4.");
     }
-
-    // Get the user ID
-    final user = await _client
-        .from("user")
-        .select("id")
-        .eq('user_name', userName)
-        .single();
-
-    final userId = user['id'];
 
     // Insert into WaterLevelDataa and return the inserted row (with ID)
     final insertedWaterLevel = await _client

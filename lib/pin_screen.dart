@@ -8,7 +8,10 @@ import 'home_screen.dart';
 
 class PinScreen extends StatefulWidget {
   final String userName;
-  const PinScreen({super.key, required this.userName});
+  const PinScreen({
+    super.key,
+    required this.userName,
+  });
   static const routeName = '/pin_screen';
 
   @override
@@ -62,13 +65,17 @@ class _PinScreenState extends State<PinScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Login successful")),
       );
+      final userId = await DbConfig().getIdUsingUserName(widget.userName);
 
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeScreen(userName: widget.userName)
+          builder: (_) => HomeScreen(
+            userName: widget.userName,
+            userId: userId,
+          ),
         ),
-      );
+    );
     } else {
       setState(() {
         _errorMessage = "Invalid PIN. Please try again.";

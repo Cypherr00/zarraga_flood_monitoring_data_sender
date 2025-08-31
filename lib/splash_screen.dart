@@ -42,6 +42,12 @@ class _SplashScreenState extends State<SplashScreen> {
           .eq('user_name', storedUser)
           .maybeSingle();
 
+      int idResponse = (await Supabase.instance.client
+          .from('user')
+          .select('id')
+          .eq('user_name', storedUser)
+          .single()) as int;
+
       if (!mounted) return;
 
       if (response != null) {

@@ -4,7 +4,12 @@ import 'db_config.dart';
 
 class SensorInputScreen extends StatefulWidget {
   final String userName;
-  const SensorInputScreen({super.key, required this.userName});
+  final int userId;
+  const SensorInputScreen({
+    super.key,
+    required this.userName,
+    required this.userId
+  });
 
   static const routeName = '/sensor_input'; // For named routing
 
@@ -48,7 +53,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
 
     try {
       await DbConfig().sendData(
-        userName: widget.userName,
+        userId: widget.userId,
         meters: meters,
       );
 

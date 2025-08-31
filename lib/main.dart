@@ -1,14 +1,17 @@
 // main.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'history_screen.dart';
 import 'splash_screen.dart';
 import 'pin_screen.dart';
-import 'sensor_input_screen.dart';
 import 'user_selection_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Initialize Supabase
   await Supabase.initialize(
