@@ -33,8 +33,9 @@ class DbConfig {
         .select('id')
         .eq('user_name', userName)
         .single();
-    return response as int;
+    return response['id'] as int;
   }
+
 
   // Fetch all users
   Future<List<String>> getAllUsers() async {
@@ -175,22 +176,22 @@ class DbConfig {
 
     if (meters > 2) {
       String threatLevel = "low";
-      String message_advisory = "Water level exceeded 1m";
+      String messageAdvisory = "Water level exceeded 1m";
 
       if (meters > 4) {
         threatLevel = "Critical";
-        message_advisory = "Threat Level: Critical - Immediate evacuation required. Follow emergency services instructions.";
+        messageAdvisory = "Threat Level: Critical - Immediate evacuation required. Follow emergency services instructions.";
       } else if (meters > 3) {
         threatLevel = "High";
-        message_advisory = "Threat Level: High - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
+        messageAdvisory = "Threat Level: High - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
       } else if (meters > 2) {
         threatLevel = "Low";
-        message_advisory = "Threat Level: Low - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+        messageAdvisory = "Threat Level: Low - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
       }
 
       await _client.from('Alerts').insert({
         'water_level_id': waterLevelId, // FK to WaterLevelData
-        'message_advisory': message_advisory,
+        'message_advisory': messageAdvisory,
         'threat_level': threatLevel,
         'meters': meters,
       });

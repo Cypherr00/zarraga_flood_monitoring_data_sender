@@ -35,12 +35,15 @@ class _PinScreenState extends State<PinScreen> {
     });
   }
 
-  void _onPinChanged() {
+  Future<void> _onPinChanged() async {
     setState(() {
       _errorMessage = null;
     });
+    final prefs = await SharedPreferences.getInstance();
 
     if (_pinController.text.length == 4) {
+      final testRead = prefs.getString('user_name');
+      print("Just saved user_name: $testRead");
       _verifyPin();
     }
   }

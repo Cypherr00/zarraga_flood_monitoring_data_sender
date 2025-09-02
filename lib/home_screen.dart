@@ -25,25 +25,31 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final SupabaseClient supabase = Supabase.instance.client;
-    supabase.auth.onAuthStateChange.listen((event) async{
-      if (event.event == AuthChangeEvent.signedIn) {
-        await FirebaseMessaging.instance.requestPermission();
+    final supabase = Supabase.instance.client;
 
-        final fcmToken = await FirebaseMessaging.instance.getToken();
-        if (fcmToken != null) {
-          final userId = supabase.auth.currentUser!.id;
-          await supabase.from('user').upsert({
-            'id': userId,
-            'fcm_token': fcmToken
-              });
-        }
+    // Upload initial token
+    FirebaseMessaging.instance.getToken().then((token) async {
+      if (token != null) {
+        await supabase.from('user').upsert({
+          'id': widget.userId,
+          'fcm_token': token,
+        });
       }
+    });
+
+    // Listen for refresh
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      await supabase.from('user').upsert({
+        'id': widget.userId,
+        'fcm_token': newToken,
+      });
     });
   }
 
+
+  @override
   Widget build(BuildContext context) {
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       SensorInputScreen(
           userName: widget.userName,
           userId: widget.userId
@@ -52,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
