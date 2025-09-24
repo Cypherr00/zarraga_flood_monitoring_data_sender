@@ -37,14 +37,14 @@ class DbConfig {
   }
 
 
-  // Fetch all users
+
   Future<List<String>> getAllUsers() async {
     final response = await _client.from('user').select('user_name');
     return (response as List).map((e) => e['user_name'] as String).toList();
   }
 
 
-  // In db_config.dart (or wherever your DbConfig class is)
+
   Future<List<Map<String, dynamic>>> getFloodLevelHistory(String filter) async {
     final client = Supabase.instance.client; // or use your _client
 
@@ -56,7 +56,7 @@ class DbConfig {
       _ => '1d',
     };
 
-    // cutoff in UTC
+
     final nowUtc = DateTime.now().toUtc();
     DateTime? cutoff;
     if (normalized == '1d') {
@@ -65,7 +65,6 @@ class DbConfig {
       cutoff = nowUtc.subtract(const Duration(days: 30));
     }
 
-    // 1) fetch sensors
     var sensorsQuery = client
         .from('WaterLevelData')
         .select('id, user_id, meters, created_at');
@@ -77,13 +76,13 @@ class DbConfig {
     final sensorsResp = await sensorsQuery.order('created_at', ascending: false);
     final List sensors = sensorsResp as List<dynamic>;
 
-    // If no sensor rows, return empty
+
     if (sensors.isEmpty) return [];
 
-    // collect sensor ids
+
     final List sensorIds = sensors.map((s) => s['id']).where((id) => id != null).toList();
 
-    // 2) fetch alerts that reference those sensor ids (if any)
+
     List alerts = [];
     if (sensorIds.isNotEmpty) {
       final alertsResp = await client
@@ -94,7 +93,7 @@ class DbConfig {
       alerts = alertsResp as List<dynamic>;
     }
 
-    // 3) group alerts by water_level_id and pick the latest by 'time'
+
     final Map<dynamic, Map<String, dynamic>> latestAlertBySensor = {};
 
     for (final a in alerts) {
@@ -114,7 +113,7 @@ class DbConfig {
       }
     }
 
-    // 4) merge: attach 'alert' object (nullable) to each sensor row
+
     final merged = sensors.map<Map<String, dynamic>>((s) {
       final Map<String, dynamic> sensor = Map<String, dynamic>.from(s as Map);
       sensor['alert'] = latestAlertBySensor[sensor['id']]; // either a Map or null
@@ -157,12 +156,16 @@ class DbConfig {
   Future<void> sendData({
     required int userId,
     required double meters,
+    required bool isOverflow,
   }) async {
-    if (meters < 0 || meters > 4) {
-      throw Exception("The maximum river depth measure is 4.");
+    if (meters < 0) {
+      throw Exception("Meters cannot be negative.");
     }
 
-    // Insert into WaterLevelDataa and return the inserted row (with ID)
+    // If overflow, treat meters as 4 for alerts
+    final effectiveMeters = meters;
+
+    // Insert water level with is_overflow flag
     final insertedWaterLevel = await _client
         .from('WaterLevelData')
         .insert({
@@ -174,31 +177,72 @@ class DbConfig {
 
     final waterLevelId = insertedWaterLevel['id'];
 
-    if (meters > 2) {
-      String threatLevel = "low";
-      String messageAdvisory = "Water level exceeded 1m";
+    // Only create alerts for meters > 2
+    if (effectiveMeters > 2) {
+      String threatLevel = "Medium Threat";
+      String messageAdvisory = "Water level exceeded 2m";
 
-      if (meters > 4) {
-        threatLevel = "Critical";
-        messageAdvisory = "Threat Level: Critical - Immediate evacuation required. Follow emergency services instructions.";
-      } else if (meters > 3) {
-        threatLevel = "High";
-        messageAdvisory = "Threat Level: High - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
-      } else if (meters > 2) {
-        threatLevel = "Low";
-        messageAdvisory = "Threat Level: Low - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+      if (effectiveMeters > 4) {
+        threatLevel = "Very High Threat";
+        messageAdvisory =
+        "Threat Level: Very High Threat - Immediate evacuation required. Follow emergency services instructions.";
+      } else if (effectiveMeters > 3) {
+        threatLevel = "High Threat";
+        messageAdvisory =
+        "Threat Level: High Threat - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
+      } else if (effectiveMeters > 2) {
+        threatLevel = "Medium Threat";
+        messageAdvisory =
+        "Threat Level: Medium Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
       }
 
       await _client.from('Alerts').insert({
-        'water_level_id': waterLevelId, // FK to WaterLevelData
+        'water_level_id': waterLevelId,
         'message_advisory': messageAdvisory,
         'threat_level': threatLevel,
-        'meters': meters,
+        'meters': effectiveMeters,
+        'is_overflow': isOverflow
       });
     }
-
   }
 
+
+  RealtimeChannel subscribeLatestWaterLevel(void Function(Map<String, dynamic>) onChange) {
+    final channel = _client.channel('realtime:WaterLevelData').onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'WaterLevelData',
+      callback: (payload) async {
+        final data = payload.newRecord;
+        if (data != null) {
+          final res = await _client
+              .from('WaterLevelData')
+              .select('id, created_at, meters, user(user_name)')
+              .eq('id', data['id'])
+              .maybeSingle();
+          if (res != null) {
+            onChange(res as Map<String, dynamic>);
+          }
+        }
+      },
+    ).subscribe();
+
+    return channel;
+  }
+// Subscribe for realtime updates
+  Future<Map<String, dynamic>?> fetchLatestWaterLevel() async {
+    final response = await _client
+        .from('WaterLevelData')
+        .select('id, created_at, meters, user(user_name)')
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    return response as Map<String, dynamic>?;
+  }
 }
+
+
+
 
 

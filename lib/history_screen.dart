@@ -45,13 +45,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   IconData _getThreatIcon(String level) {
     switch (level.toLowerCase()) {
-      case "low":
-        return Icons.check_circle;
-      case "medium":
-        return Icons.warning;
-      case "high":
-      case "critical":
+      case "Medium Threat":
         return Icons.error;
+      case "High Threat":
+        return Icons.error;
+      case "Very High Threat":
+        return Icons.warning;
       default:
         return Icons.help_outline;
     }
