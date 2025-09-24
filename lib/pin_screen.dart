@@ -70,7 +70,7 @@ class _PinScreenState extends State<PinScreen> {
       );
       final userId = await DbConfig().getIdUsingUserName(widget.userName);
 
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => HomeScreen(
