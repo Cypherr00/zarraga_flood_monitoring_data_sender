@@ -30,13 +30,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Color _getThreatColor(String level) {
     switch (level.toLowerCase()) {
-      case "low":
-        return Colors.green;
-      case "medium":
+      case "medium threat":
+        return Colors.amber;
+      case "high threat":
         return Colors.orange;
-      case "high":
-        return Colors.redAccent;
-      case "critical":
+      case "very high threat":
         return Colors.red.shade900;
       default:
         return Colors.grey;
@@ -45,11 +43,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   IconData _getThreatIcon(String level) {
     switch (level.toLowerCase()) {
-      case "Medium Threat":
+      case "medium threat":
         return Icons.error;
-      case "High Threat":
+      case "high threat":
         return Icons.error;
-      case "Very High Threat":
+      case "very high threat":
         return Icons.warning;
       default:
         return Icons.help_outline;
@@ -118,7 +116,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ? metersRaw.toStringAsFixed(1)
                         : metersRaw.toString());
 
-                    final userId = record['user_id']?.toString() ?? "Unknown";
+                    final userName = record['user']['user_name']?.toString() ?? "Unknown";
+
 
                     final dynamic alertRaw =
                         record['alert'] ?? record['Alerts'] ?? record['alerts'];
@@ -186,7 +185,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             const SizedBox(height: 12),
 
                             // metadata
-                            Text("User: $userId",
+                            Text("User: $userName",
                                 style: TextStyle(color: Colors.grey[700])),
                             Text(formattedDate,
                                 style: TextStyle(color: Colors.grey[600])),

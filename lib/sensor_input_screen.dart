@@ -26,7 +26,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   late TextEditingController _controller;
 
   bool isLoading = false;
-  double _currentValue = 2.0;
+  double _currentValue = 1.0; // Default 1m
   bool _isOverflow = false;
 
   Map<String, dynamic>? latest; // Latest water level
@@ -67,23 +67,13 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   void _toggleOverflow() {
     setState(() {
       _isOverflow = !_isOverflow;
-      if (_isOverflow) {
-        if (_currentValue < 4.0) {
-          _currentValue = 4.0;
-          _controller.text = _currentValue.toStringAsFixed(1);
-        }
-      } else {
-        if (_currentValue > 4.0) {
-          _currentValue = 4.0;
-          _controller.text = _currentValue.toStringAsFixed(1);
-        }
-      }
+      if (_isOverflow && _currentValue < 4.0) _currentValue = 4.0;
+      if (!_isOverflow && _currentValue > 4.0) _currentValue = 1.0;
+      _controller.text = _currentValue.toStringAsFixed(1);
     });
   }
 
   Future<void> _handleSendData() async {
-    if (!mounted) return;
-
     final input = _controller.text.trim();
     final double? meters = double.tryParse(input);
 
@@ -103,25 +93,21 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         isOverflow: _isOverflow,
       );
 
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Data sent successfully!")),
       );
 
       setState(() {
-        _currentValue = 0.0;
-        _controller.text = "0.0";
+        _currentValue = 1.0;
+        _controller.text = _currentValue.toStringAsFixed(1);
         _isOverflow = false;
       });
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -143,35 +129,32 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Log Out"),
-          content: const Text("Are you sure you want to log out?"),
-          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Cancel"),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Log Out"),
+        content: const Text("Are you sure you want to log out?"),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Log Out"),
-            ),
-          ],
-        );
-      },
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Log Out"),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user_name');
-
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
@@ -181,16 +164,33 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
     }
   }
 
+  Widget _buildCard({required Widget child, required List<Color> colors}) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 400),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(padding: const EdgeInsets.all(20), child: child),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Water Level Input'),
         centerTitle: true,
-        elevation: 2,
         actions: [
           IconButton(
             tooltip: "Log Out",
@@ -200,152 +200,169 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: SizedBox(
-            width: 360, // lock width
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Input card
-                Card(
-                  elevation: 6,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Input Card
+              _buildCard(
+                colors: [Colors.blue.shade100, Colors.blue.shade50],
+                child: Column(
+                  children: [
+                    const Text(
+                      "Set Current Water Level",
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 250),
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                          )
+                        ],
+                      ),
+                      child: Text("${_currentValue.toStringAsFixed(1)} m"),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      onPressed: _toggleOverflow,
+                      iconSize: 36,
+                      icon: Icon(
+                        Icons.warning,
+                        color: _isOverflow ? Colors.red : Colors.grey[600],
+                      ),
+                      tooltip: 'Overflow / Measurement Exceeded',
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          "Set Current Water Level",
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 250),
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: theme.primaryColor,
-                          ),
-                          child: Text("${_currentValue.toStringAsFixed(1)} m"),
-                        ),
-                        const SizedBox(height: 8),
-                        IconButton(
-                          onPressed: _toggleOverflow,
-                          iconSize: 36,
-                          icon: Icon(
-                            Icons.warning,
-                            color: _isOverflow ? Colors.red : Colors.grey,
-                          ),
-                          tooltip: 'Overflow / Measurement Exceeded',
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              height: 180,
-                              child: RotatedBox(
-                                quarterTurns: -1,
-                                child: Slider(
-                                  value: _currentValue.clamp(
-                                    _isOverflow ? 4.0 : 0.0,
-                                    _isOverflow ? 6.0 : 4.0,
-                                  ),
-                                  min: _isOverflow ? 4.0 : 0.0,
-                                  max: _isOverflow ? 6.0 : 4.0,
-                                  divisions: null,
-                                  label: _currentValue.toStringAsFixed(1),
-                                  onChanged: (double newValue) {
-                                    setState(() {
-                                      _currentValue = _isOverflow && newValue < 4.0 ? 4.0 : newValue;
-                                      _controller.text = _currentValue.toStringAsFixed(1);
-                                    });
-                                  },
-                                ),
-                              ),
+                        SizedBox(
+                          height: 180,
+                          child: RotatedBox(
+                            quarterTurns: -1,
+                            child: Slider(
+                              value: _currentValue.clamp(
+                                  _isOverflow ? 4.0 : 0.0,
+                                  _isOverflow ? 6.0 : 4.0),
+                              min: _isOverflow ? 4.0 : 0.0,
+                              max: _isOverflow ? 6.0 : 4.0,
+                              divisions: null,
+                              label: _currentValue.toStringAsFixed(1),
+                              onChanged: (v) {
+                                setState(() {
+                                  _currentValue =
+                                  _isOverflow && v < 4.0 ? 4.0 : v;
+                                  _controller.text =
+                                      _currentValue.toStringAsFixed(1);
+                                });
+                              },
+                              activeColor: theme.primaryColor,
+                              inactiveColor: Colors.grey.shade300,
                             ),
-                            const SizedBox(width: 20),
-                            SizedBox(
-                              width: 100,
-                              child: TextField(
-                                controller: _controller,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 20),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.grey.shade100,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  labelText: "Meters",
-                                ),
-                                onSubmitted: _updateFromText,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.send),
-                          label: Text(isLoading ? 'Sending...' : 'Send Data'),
-                          onPressed: isLoading ? null : _handleSendData,
+                        ),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 80,
+                          child: TextField(
+                            controller: _controller,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 20),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.grey.shade100,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              labelText: "Meters",
+                            ),
+                            onSubmitted: _updateFromText,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Latest water level card
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: latest == null
-                          ? const Text(
-                        'No water level data yet',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      )
-                          : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Latest Water Level',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${latest!['meters']} meters',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Submitted by: ${latest!['user']['user_name']}',
-                            style: const TextStyle(color: Colors.black54),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'At: ${latest!['created_at']}',
-                            style: const TextStyle(color: Colors.black45, fontSize: 12),
-                          ),
-                        ],
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.send, color: Colors.white,),
+                      label: Text("Send Data", style: TextStyle(color: Colors.white),),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: theme.primaryColor,
                       ),
+                      onPressed: isLoading ? null : _handleSendData,
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Latest Water Level Card
+              // Latest Water Level Card
+              _buildCard(
+                colors: [Colors.blue.shade50, Colors.blue.shade100],
+                child: SizedBox(
+                  height: 130, // fixed height to prevent resizing
+                  child: latest == null
+                      ? const Center(
+                    child: Text(
+                      "No water level data yet",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                      : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Center(
+                        child: Text(
+                          "Latest Water Level",
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          "${latest!['meters']} m",
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text(
+                          "Submitted by: ${latest!['user']['user_name']}",
+                          style: const TextStyle(color: Colors.black54),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
+                        child: Text(
+                          "At: ${latest!['created_at']}",
+                          style: const TextStyle(color: Colors.black45, fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+
+
+            ],
           ),
         ),
       ),

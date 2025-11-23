@@ -40,10 +40,8 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
 
       if (response != null) {
-        // User exists → go to PinScreen
         _goToPinScreen(storedUser);
       } else {
-        // Stored user invalid → clear it and go back to selection
         await prefs.remove('user_name');
         _goToUserSelection();
       }
@@ -71,8 +69,23 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text(
+              'Loading App...',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

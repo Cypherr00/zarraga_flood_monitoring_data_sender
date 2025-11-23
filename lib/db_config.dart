@@ -65,22 +65,22 @@ class DbConfig {
       cutoff = nowUtc.subtract(const Duration(days: 30));
     }
 
-    var sensorsQuery = client
+    var historyQuery = client
         .from('WaterLevelData')
-        .select('id, user_id, meters, created_at');
+        .select('id, user:user_id(user_name), meters, created_at');
 
     if (cutoff != null) {
-      sensorsQuery = sensorsQuery.gte('created_at', cutoff.toIso8601String());
+      historyQuery = historyQuery.gte('created_at', cutoff.toIso8601String());
     }
 
-    final sensorsResp = await sensorsQuery.order('created_at', ascending: false);
-    final List sensors = sensorsResp as List<dynamic>;
+    final waterLevelResp = await historyQuery.order('created_at', ascending: false);
+    final List waterLevel = waterLevelResp as List<dynamic>;
 
 
-    if (sensors.isEmpty) return [];
+    if (waterLevel.isEmpty) return [];
 
 
-    final List sensorIds = sensors.map((s) => s['id']).where((id) => id != null).toList();
+    final List sensorIds = waterLevel.map((s) => s['id']).where((id) => id != null).toList();
 
 
     List alerts = [];
@@ -114,7 +114,7 @@ class DbConfig {
     }
 
 
-    final merged = sensors.map<Map<String, dynamic>>((s) {
+    final merged = waterLevel.map<Map<String, dynamic>>((s) {
       final Map<String, dynamic> sensor = Map<String, dynamic>.from(s as Map);
       sensor['alert'] = latestAlertBySensor[sensor['id']]; // either a Map or null
       return sensor;
@@ -140,7 +140,7 @@ class DbConfig {
     }
 
     var query = _client.from('WaterLevelData').select(
-      'id, user_id, meters, created_at, Alerts(threat_level, message_advisory)',
+      'id, user(user_name), meters, created_at, Alerts(threat_level, message_advisory)',
     );
 
     if (cutoff != null) {
