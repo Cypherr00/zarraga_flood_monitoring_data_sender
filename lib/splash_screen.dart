@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
             CircularProgressIndicator(),
             SizedBox(height: 20),
             Text(
-              'Loading App...',
+              'FloodTwin',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
