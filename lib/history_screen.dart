@@ -106,8 +106,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       createdAt = DateTime.tryParse(createdRaw);
                     }
                     final formattedDate = createdAt != null
-                        ? DateFormat("MMM d, yyyy • hh:mm a").format(createdAt)
+                        ? DateFormat("MMM d, yyyy • hh:mm a").format(createdAt.toLocal())
                         : "Unknown date";
+
 
                     final metersRaw = record['meters'];
                     final String metersStr = metersRaw == null
