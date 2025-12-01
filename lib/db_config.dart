@@ -158,18 +158,17 @@ class DbConfig {
     required double meters,
     required bool isOverflow,
   }) async {
-    if (meters < 0) {
-      throw Exception("Meters cannot be negative.");
-    }
+    // Clamp meters between 0 and 6
+    final clampedMeters = meters.clamp(0, 6);
 
     // If overflow, treat meters as 4 for alerts
-    final effectiveMeters = meters;
+    final effectiveMeters = clampedMeters;
 
     // Insert water level with is_overflow flag
     final insertedWaterLevel = await _client
         .from('WaterLevelData')
         .insert({
-      'meters': meters,
+      'meters': clampedMeters,
       'user_id': userId,
     })
         .select()
@@ -205,6 +204,7 @@ class DbConfig {
       });
     }
   }
+
 
 
   RealtimeChannel subscribeLatestWaterLevel(void Function(Map<String, dynamic>) onChange) {
