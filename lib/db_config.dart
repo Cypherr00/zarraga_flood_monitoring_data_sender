@@ -177,19 +177,19 @@ class DbConfig {
     final waterLevelId = insertedWaterLevel['id'];
 
     // Only create alerts for meters > 2
-    if (effectiveMeters > 2) {
+    if (effectiveMeters >= 2) {
       String threatLevel = "Medium Threat";
-      String messageAdvisory = "Water level exceeded 2m";
+      String messageAdvisory = "Threat Level: Medium Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
 
-      if (effectiveMeters > 4) {
+      if (effectiveMeters >= 4) {
         threatLevel = "Very High Threat";
         messageAdvisory =
         "Threat Level: Very High Threat - Immediate evacuation required. Follow emergency services instructions.";
-      } else if (effectiveMeters > 3) {
+      } else if (effectiveMeters >= 3) {
         threatLevel = "High Threat";
         messageAdvisory =
         "Threat Level: High Threat - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
-      } else if (effectiveMeters > 2) {
+      } else if (effectiveMeters >= 2) {
         threatLevel = "Medium Threat";
         messageAdvisory =
         "Threat Level: Medium Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
