@@ -13,11 +13,37 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  // Matching the theme established in the other screens
+  final Color primaryBlue = const Color(0xFF0D47A1);
+
   @override
   void initState() {
     super.initState();
-    _checkStoredUser();
+
+    // Setup a smooth fade-in animation for the logo
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+    _animationController.forward();
+
+    // Give the animation time to play before redirecting
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      _checkStoredUser();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkStoredUser() async {
@@ -70,21 +96,74 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text(
-              'FloodTwin',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+      backgroundColor: primaryBlue,
+      body: Stack(
+        children: [
+          // Center Logo and App Name
+          Center(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Logo Container using custom asset
+                  Container(
+                    padding: const EdgeInsets.all(20), // Adjusted padding slightly for image
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.contain, // Ensures the PNG doesn't stretch
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // App Title
+                  const Text(
+                    'FloodTwin',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Subtitle
+                  Text(
+                    'Water Level Monitoring',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.7),
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Bottom Loading Indicator
+          Positioned(
+            bottom: 48,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8)),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

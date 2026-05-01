@@ -71,7 +71,8 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   void _toggleOverflow() {
     setState(() {
       _isOverflow = !_isOverflow;
-      if (_isOverflow && _currentValue < 4.0) _currentValue = 4.0;
+      // Fixed: Overflow strictly starts at 4.1 to avoid overlap with Normal
+      if (_isOverflow && _currentValue < 4.1) _currentValue = 4.1;
       if (!_isOverflow && _currentValue > 4.0) _currentValue = 1.0;
       _controller.text = _currentValue.toStringAsFixed(1);
     });
@@ -118,7 +119,8 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   void _updateFromText(String text) {
     final parsed = double.tryParse(text);
     if (parsed != null) {
-      double minValue = _isOverflow ? 4.0 : 0.0;
+      // Fixed: Minimum clamped value is 4.1 when in overflow mode
+      double minValue = _isOverflow ? 4.1 : 0.0;
       double maxValue = _isOverflow ? 6.0 : 4.0;
       final clamped = parsed.clamp(minValue, maxValue);
       setState(() {
@@ -133,21 +135,65 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Log Out"),
-        content: const Text("Are you sure you want to log out?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text("Cancel", style: TextStyle(color: primaryBlue)),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Styled Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.logout, color: Colors.redAccent, size: 32),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Log Out",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: primaryBlue),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Are you sure you want to securely log out of your account?",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text("Cancel", style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text("Log Out", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Log Out", style: TextStyle(color: Colors.white)),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -184,10 +230,13 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       appBar: AppBar(
+        // ADDED: Logo in the leading slot
+        leading: Padding(
+          padding: const EdgeInsets.all(10.0), // Adds breathing room around the logo
+          child: Image.asset('assets/img.png', fit: BoxFit.contain),
+        ),
         title: const Text('Water Level Input'),
         centerTitle: true,
         actions: [
@@ -202,7 +251,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start, // Align to top, removing the huge gap
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               // --- INPUT CARD ---
               _buildCard(
@@ -220,16 +269,16 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Vertical Slider inside a RotatedBox
                         SizedBox(
                           height: 200,
                           child: RotatedBox(
                             quarterTurns: 3,
                             child: Slider(
+                              // Fixed: Min clamp and slider minimum is 4.1 for overflow
                               value: _currentValue.clamp(
-                                  _isOverflow ? 4.0 : 0.0,
+                                  _isOverflow ? 4.1 : 0.0,
                                   _isOverflow ? 6.0 : 4.0),
-                              min: _isOverflow ? 4.0 : 0.0,
+                              min: _isOverflow ? 4.1 : 0.0,
                               max: _isOverflow ? 6.0 : 4.0,
                               activeColor: _isOverflow ? Colors.redAccent : primaryBlue,
                               onChanged: (v) {
@@ -242,7 +291,6 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
                           ),
                         ),
                         const SizedBox(width: 30),
-                        // Display Value and Text Input
                         Column(
                           children: [
                             AnimatedDefaultTextStyle(
@@ -310,7 +358,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20), // Controlled margin between cards
+              const SizedBox(height: 20),
 
               // --- LATEST READING CARD ---
               _buildCard(
