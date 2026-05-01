@@ -60,9 +60,6 @@ class _PinScreenState extends State<PinScreen> {
         await prefs.setString('user_name', widget.userName);
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login successful")),
-        );
         final userId = await DbConfig().getIdUsingUserName(widget.userName);
 
         Navigator.pushReplacement(

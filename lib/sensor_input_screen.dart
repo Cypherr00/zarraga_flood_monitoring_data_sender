@@ -98,9 +98,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         isOverflow: _isOverflow,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Data sent successfully!")),
-      );
+
 
       setState(() {
         _currentValue = 1.0;
