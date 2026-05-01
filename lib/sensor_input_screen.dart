@@ -26,11 +26,15 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   late TextEditingController _controller;
 
   bool isLoading = false;
-  double _currentValue = 1.0; // Default 1m
+  double _currentValue = 1.0;
   bool _isOverflow = false;
 
-  Map<String, dynamic>? latest; // Latest water level
+  Map<String, dynamic>? latest;
   RealtimeChannel? subscription;
+
+  // Theme Colors
+  final Color primaryBlue = const Color(0xFF0D47A1);
+  final Color lightBlueBg = const Color(0xFFE3F2FD);
 
   @override
   void initState() {
@@ -133,20 +137,15 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Log Out"),
         content: const Text("Are you sure you want to log out?"),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         actions: [
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            child: Text("Cancel", style: TextStyle(color: primaryBlue)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Log Out"),
+            child: const Text("Log Out", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -185,7 +184,6 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
@@ -202,169 +200,146 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          reverse: true,
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: screenHeight - MediaQuery.of(context).padding.top),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                // Input Card
-                _buildCard(
-                  colors: [Colors.blue.shade100, Colors.blue.shade50],
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Set Current Water Level",
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                      AnimatedDefaultTextStyle(
-                        duration: const Duration(milliseconds: 250),
-                        style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          color: theme.primaryColor,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 4,
-                            )
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start, // Align to top, removing the huge gap
+            children: [
+              // --- INPUT CARD ---
+              _buildCard(
+                colors: [lightBlueBg, Colors.white],
+                child: Column(
+                  children: [
+                    Text(
+                      "Set Current Water Level",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryBlue),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // VERTICAL SLIDER SECTION
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Vertical Slider inside a RotatedBox
+                        SizedBox(
+                          height: 200,
+                          child: RotatedBox(
+                            quarterTurns: 3,
+                            child: Slider(
+                              value: _currentValue.clamp(
+                                  _isOverflow ? 4.0 : 0.0,
+                                  _isOverflow ? 6.0 : 4.0),
+                              min: _isOverflow ? 4.0 : 0.0,
+                              max: _isOverflow ? 6.0 : 4.0,
+                              activeColor: _isOverflow ? Colors.redAccent : primaryBlue,
+                              onChanged: (v) {
+                                setState(() {
+                                  _currentValue = v;
+                                  _controller.text = _currentValue.toStringAsFixed(1);
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 30),
+                        // Display Value and Text Input
+                        Column(
+                          children: [
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 200),
+                              style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: _isOverflow ? Colors.redAccent : primaryBlue,
+                              ),
+                              child: Text("${_currentValue.toStringAsFixed(1)} m"),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: 80,
+                              child: TextField(
+                                controller: _controller,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  labelText: "Meters",
+                                ),
+                                onSubmitted: _updateFromText,
+                              ),
+                            ),
                           ],
                         ),
-                        child: Text("${_currentValue.toStringAsFixed(1)} m"),
-                      ),
-                      const SizedBox(height: 8),
-                      IconButton(
-                        onPressed: _toggleOverflow,
-                        iconSize: 36,
-                        icon: Icon(
-                          Icons.warning,
-                          color: _isOverflow ? Colors.red : Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            height: screenHeight * 0.25, // 25% of screen height
-                            child: RotatedBox(
-                              quarterTurns: -1,
-                              child: Slider(
-                                value: _currentValue.clamp(
-                                    _isOverflow ? 4.0 : 0.0,
-                                    _isOverflow ? 6.0 : 4.0),
-                                min: _isOverflow ? 4.0 : 0.0,
-                                max: _isOverflow ? 6.0 : 4.0,
-                                divisions: null,
-                                label: _currentValue.toStringAsFixed(1),
-                                onChanged: (v) {
-                                  setState(() {
-                                    _currentValue = _isOverflow && v < 4.0 ? 4.0 : v;
-                                    _controller.text = _currentValue.toStringAsFixed(1);
-                                  });
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          SizedBox(
-                            width: 80,
-                            child: TextField(
-                              controller: _controller,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 20),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: Colors.grey.shade100,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                labelText: "Meters",
-                              ),
-                              onSubmitted: _updateFromText,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.send, color: Colors.white),
-                        label: const Text("Send Data", style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(double.infinity, screenHeight * 0.06), // 6% of screen height
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          backgroundColor: theme.primaryColor,
-                        ),
-                        onPressed: isLoading ? null : _handleSendData,
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
 
-                const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                // Latest Water Level Card
-                _buildCard(
-                  colors: [Colors.blue.shade50, Colors.blue.shade100],
-                  child: SizedBox(
-                    height: screenHeight * 0.18, // 18% of screen height
-                    child: latest == null
-                        ? const Center(
-                      child: Text(
-                        "No water level data yet",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    )
-                        : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    // Buttons Row
+                    Row(
                       children: [
-                        Center(
-                          child: Text(
-                            "Latest Water Level",
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isOverflow ? Colors.red.shade50 : Colors.blue.shade50,
+                              foregroundColor: _isOverflow ? Colors.red : primaryBlue,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Text(
-                            "${latest!['meters']} m",
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade900,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            "Submitted by: ${latest!['user']['user_name']}",
-                            style: const TextStyle(color: Colors.black54),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
-                          child: Text(
-                            "At: ${latest!['created_at']}",
-                            style: const TextStyle(color: Colors.black45, fontSize: 12),
+                            icon: Icon(_isOverflow ? Icons.warning : Icons.check_circle),
+                            label: Text(_isOverflow ? "OVERFLOW" : "NORMAL"),
+                            onPressed: _toggleOverflow,
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      label: const Text("SEND DATA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: primaryBlue,
+                      ),
+                      onPressed: isLoading ? null : _handleSendData,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              const SizedBox(height: 20), // Controlled margin between cards
+
+              // --- LATEST READING CARD ---
+              _buildCard(
+                colors: [primaryBlue, const Color(0xFF1565C0)],
+                child: latest == null
+                    ? const Center(child: Text("No data yet", style: TextStyle(color: Colors.white70)))
+                    : Column(
+                  children: [
+                    const Text(
+                      "LATEST READING",
+                      style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.2, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "${latest!['meters']} m",
+                      style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const Divider(color: Colors.white24, height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("By: ${latest!['user']['user_name']}", style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        Text("${latest!['created_at']}", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
