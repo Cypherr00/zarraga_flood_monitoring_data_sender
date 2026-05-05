@@ -17,6 +17,10 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
+  // Brand Colors
+  final Color primaryBlue = const Color(0xFF0D47A1);
+  final Color lightBlueBg = const Color(0xFFE3F2FD);
+
   @override
   void initState() {
     super.initState();
@@ -34,13 +38,19 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
   }
 
   Future<void> _loadUsers() async {
+    // Show loading indicator if triggered manually via the refresh button
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final users = await DbConfig().getAllUsers();
+      final users = await DbConfig().getActiveUsers();
       setState(() {
         _users = users;
-        _filteredUsers = users;
         _isLoading = false;
       });
+      // Re-apply any existing search filter after fetching new data
+      _filterUsers(_searchController.text);
     } catch (e) {
       setState(() {
         _users = [];
@@ -69,29 +79,48 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
   }
 
   Widget _buildUserCard(String userName) {
-    String initials = userName.isNotEmpty
-        ? userName.trim().split(' ').map((e) => e[0].toUpperCase()).take(2).join()
-        : '?';
+    // Safely generate initials, preventing crashes from multiple spaces
+    String initials = "?";
+    if (userName.trim().isNotEmpty) {
+      initials = userName
+          .trim()
+          .split(RegExp(r'\s+')) // Splits by any amount of whitespace
+          .where((e) => e.isNotEmpty)
+          .map((e) => e[0].toUpperCase())
+          .take(2)
+          .join();
+    }
 
     return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.blue.shade100, width: 1),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _selectUser(userName),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.blue.shade700,
-                child: Text(
-                  initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: primaryBlue.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: TextStyle(
+                      color: primaryBlue,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -99,13 +128,14 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
               Expanded(
                 child: Text(
                   userName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade800,
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
+              Icon(Icons.chevron_right, size: 24, color: Colors.grey.shade400),
             ],
           ),
         ),
@@ -116,25 +146,51 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: lightBlueBg,
       appBar: AppBar(
-        title: const Text("Select User"),
+        backgroundColor: lightBlueBg,
+        elevation: 0,
+        title: Text(
+          "Select User",
+          style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            color: primaryBlue,
+            tooltip: 'Refresh Users',
+            onPressed: _loadUsers,
+          ),
+        ],
       ),
       body: Column(
         children: [
           // Search bar
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: TextField(
               controller: _searchController,
+              style: const TextStyle(fontSize: 16),
               decoration: InputDecoration(
                 hintText: "Search users...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                prefixIcon: Icon(Icons.search, color: primaryBlue),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 filled: true,
-                fillColor: Colors.grey.shade100,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: Colors.blue.shade100, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: primaryBlue, width: 2),
+                ),
               ),
             ),
           ),
@@ -142,27 +198,35 @@ class _UserSelectionScreenState extends State<UserSelectionScreen> {
           // List of users
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredUsers.isEmpty
-                ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.person_off, size: 60, color: Colors.grey),
-                  SizedBox(height: 12),
-                  Text(
-                    "No users found",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                ? Center(child: CircularProgressIndicator(color: primaryBlue))
+                : RefreshIndicator(
+              color: primaryBlue,
+              onRefresh: _loadUsers,
+              child: _filteredUsers.isEmpty
+                  ? ListView(
+                // AlwaysScrollableScrollPhysics ensures pull-to-refresh works even if empty
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+                  Icon(Icons.person_off_outlined, size: 64, color: Colors.blue.shade200),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      "No users found",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+                    ),
                   ),
                 ],
+              )
+                  : ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 24),
+                itemCount: _filteredUsers.length,
+                itemBuilder: (context, index) {
+                  final userName = _filteredUsers[index];
+                  return _buildUserCard(userName);
+                },
               ),
-            )
-                : ListView.builder(
-              itemCount: _filteredUsers.length,
-              itemBuilder: (context, index) {
-                final userName = _filteredUsers[index];
-                return _buildUserCard(userName);
-              },
             ),
           ),
         ],

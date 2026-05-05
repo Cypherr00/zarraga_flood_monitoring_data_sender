@@ -15,6 +15,22 @@ class DbConfig {
     return response != null;
   }
 
+  Future<List<String>> getActiveUsers() async {
+    try {
+      // Chaining .eq('is_active', true) does the filtering on the server
+      final response = await _client
+          .from('user')
+          .select('user_name')
+          .eq('is_active', true);
+
+      // Map the response to a List of Strings just like your original method
+      return (response as List).map((e) => e['user_name'] as String).toList();
+    } catch (e) {
+      print("Error fetching active users: $e");
+      return [];
+    }
+  }
+
   // Verify pin for a user
   Future<bool> verifyPin(String userName, String pin) async {
     final response = await _client

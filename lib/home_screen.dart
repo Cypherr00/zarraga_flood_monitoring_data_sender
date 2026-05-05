@@ -160,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Colors.grey,
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.sensors), label: "Sensor Input"),
+          BottomNavigationBarItem(icon: Icon(Icons.sensors), label: "Input"),
           BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
         ],
       ),

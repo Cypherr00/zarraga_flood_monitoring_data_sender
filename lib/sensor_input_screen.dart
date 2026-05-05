@@ -71,11 +71,45 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   void _toggleOverflow() {
     setState(() {
       _isOverflow = !_isOverflow;
-      // Fixed: Overflow strictly starts at 4.1 to avoid overlap with Normal
       if (_isOverflow && _currentValue < 4.1) _currentValue = 4.1;
       if (!_isOverflow && _currentValue > 4.0) _currentValue = 1.0;
       _controller.text = _currentValue.toStringAsFixed(1);
     });
+  }
+
+  // --- NEW: Custom SnackBar Helper ---
+  void _showCustomSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating, // Makes it float above the bottom
+        margin: const EdgeInsets.all(16),
+        elevation: 6,
+        backgroundColor: isError ? Colors.redAccent : Colors.green.shade600,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16), // Matches your app's curves
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle_outline,
+              color: Colors.white,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleSendData() async {
@@ -83,9 +117,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
     final double? meters = double.tryParse(input);
 
     if (meters == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid input.")),
-      );
+      _showCustomSnackBar("Invalid input. Please enter a valid number.", isError: true);
       return;
     }
 
@@ -98,7 +130,8 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         isOverflow: _isOverflow,
       );
 
-
+      // Trigger the success design!
+      _showCustomSnackBar("Data sent successfully!");
 
       setState(() {
         _currentValue = 1.0;
@@ -106,9 +139,8 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
         _isOverflow = false;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      // Trigger the error design!
+      _showCustomSnackBar("Error: $e", isError: true);
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -117,7 +149,6 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   void _updateFromText(String text) {
     final parsed = double.tryParse(text);
     if (parsed != null) {
-      // Fixed: Minimum clamped value is 4.1 when in overflow mode
       double minValue = _isOverflow ? 4.1 : 0.0;
       double maxValue = _isOverflow ? 6.0 : 4.0;
       final clamped = parsed.clamp(minValue, maxValue);
@@ -141,7 +172,6 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Styled Icon Header
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -230,9 +260,8 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // ADDED: Logo in the leading slot
         leading: Padding(
-          padding: const EdgeInsets.all(10.0), // Adds breathing room around the logo
+          padding: const EdgeInsets.all(10.0),
           child: Image.asset('assets/img.png', fit: BoxFit.contain),
         ),
         title: const Text('Water Level Input'),
@@ -272,7 +301,6 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
                           child: RotatedBox(
                             quarterTurns: 3,
                             child: Slider(
-                              // Fixed: Min clamp and slider minimum is 4.1 for overflow
                               value: _currentValue.clamp(
                                   _isOverflow ? 4.1 : 0.0,
                                   _isOverflow ? 6.0 : 4.0),

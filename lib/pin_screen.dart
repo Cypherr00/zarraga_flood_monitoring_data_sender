@@ -22,6 +22,13 @@ class _PinScreenState extends State<PinScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Bringing back our brand colors
+  final Color primaryBlue = const Color(0xFF0D47A1);
+  final Color lightBlueBg = const Color(0xFFE3F2FD);
+
+  // App Version (You can update this manually, or use the package_info_plus plugin later)
+  final String appVersion = "v1.0.5";
+
   @override
   void initState() {
     super.initState();
@@ -33,9 +40,9 @@ class _PinScreenState extends State<PinScreen> {
   }
 
   Future<void> _onPinChanged() async {
-    setState(() {
-      _errorMessage = null;
-    });
+    if (_errorMessage != null) {
+      setState(() => _errorMessage = null);
+    }
 
     if (_pinController.text.length == 4) {
       _verifyPin();
@@ -43,6 +50,9 @@ class _PinScreenState extends State<PinScreen> {
   }
 
   Future<void> _verifyPin() async {
+    // Prevent double-firing from the listener
+    if (_isLoading) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -59,8 +69,10 @@ class _PinScreenState extends State<PinScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_name', widget.userName);
 
-        if (!mounted) return;
         final userId = await DbConfig().getIdUsingUserName(widget.userName);
+
+        // ALWAYS check mounted immediately before context usage after an await
+        if (!mounted) return;
 
         Navigator.pushReplacement(
           context,
@@ -82,8 +94,9 @@ class _PinScreenState extends State<PinScreen> {
       setState(() {
         _errorMessage = "An error occurred. Try again.";
       });
+      _pinController.clear();
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -113,112 +126,135 @@ class _PinScreenState extends State<PinScreen> {
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF74ABE2), Color(0xFF5563DE)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: Card(
-            elevation: 12,
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            margin: const EdgeInsets.symmetric(horizontal: 24),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock_outline,
-                      size: 60, color: Colors.blueAccent),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Hello, ${widget.userName}",
-                    style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Enter your 4-digit PIN to continue",
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  // PIN input
-                  SizedBox(
-                    width: screenSize.width * 0.5,
-                    child: TextField(
-                      controller: _pinController,
-                      focusNode: _pinFocusNode,
-                      obscureText: true,
-                      obscuringCharacter: "●",
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      maxLength: 4,
-                      style: const TextStyle(fontSize: 28, letterSpacing: 24),
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: InputDecoration(
-                        counterText: "",
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                          borderSide: BorderSide.none,
+      backgroundColor: lightBlueBg,
+      body: Stack(
+        children: [
+          // Main Content
+          Center(
+            child: SingleChildScrollView(
+              child: Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(color: Colors.blue.shade100, width: 1),
+                ),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Branded Icon
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withOpacity(0.1),
+                          shape: BoxShape.circle,
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                          borderSide: BorderSide(
-                            color: Theme.of(context).primaryColor,
-                            width: 2.0,
+                        child: Icon(Icons.lock_outline, size: 48, color: primaryBlue),
+                      ),
+                      const SizedBox(height: 20),
+
+                      Text(
+                        "Welcome back,",
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                      ),
+                      Text(
+                        widget.userName,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: primaryBlue,
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      const Text(
+                        "Enter your 4-digit PIN",
+                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // PIN input
+                      SizedBox(
+                        width: screenSize.width * 0.55,
+                        child: TextField(
+                          controller: _pinController,
+                          focusNode: _pinFocusNode,
+                          obscureText: true,
+                          obscuringCharacter: "●",
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          maxLength: 4,
+                          style: TextStyle(fontSize: 32, letterSpacing: 20, color: primaryBlue),
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            counterText: "",
+                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16.0),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16.0),
+                              borderSide: BorderSide(color: primaryBlue, width: 2.0),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_isLoading)
-                    const CircularProgressIndicator()
-                  else if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(
-                        _errorMessage!,
-                        style:
-                        const TextStyle(color: Colors.red, fontSize: 14),
-                        textAlign: TextAlign.center,
+
+                      // Reserved space for loader/error to prevent UI jumping
+                      SizedBox(
+                        height: 48,
+                        child: Center(
+                          child: _isLoading
+                              ? const CircularProgressIndicator()
+                              : _errorMessage != null
+                              ? Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.w500),
+                            textAlign: TextAlign.center,
+                          )
+                              : const SizedBox.shrink(),
+                        ),
                       ),
-                    ),
-                  const SizedBox(height: 24),
-                  // Change User button
-                  ElevatedButton(
-                    onPressed: _changeUser,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14.0, horizontal: 32.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.0),
+
+                      const Divider(height: 32),
+
+                      // Secondary subtle action
+                      TextButton.icon(
+                        onPressed: _changeUser,
+                        icon: const Icon(Icons.swap_horiz, size: 18),
+                        label: const Text("Not you? Switch User"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey.shade700,
+                        ),
                       ),
-                      elevation: 4,
-                    ),
-                    child: const Text(
-                      "Change User",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+
+          // Version Number overlay
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: Text(
+              appVersion,
+              style: TextStyle(
+                color: primaryBlue.withOpacity(0.5),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.1,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
