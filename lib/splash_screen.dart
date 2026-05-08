@@ -56,18 +56,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     }
 
     try {
-      // Check if user still exists in Supabase
+      // Check if user still exists and is active in Supabase
       final response = await Supabase.instance.client
           .from('user')
-          .select('id, user_name')
+          .select('id, user_name, is_active')
           .eq('user_name', storedUser)
           .maybeSingle();
 
       if (!mounted) return;
 
-      if (response != null) {
+      if (response != null && response['is_active'] == true) {
         _goToPinScreen(storedUser);
       } else {
+        // User doesn't exist or is inactive
         await prefs.remove('user_name');
         _goToUserSelection();
       }

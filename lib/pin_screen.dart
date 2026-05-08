@@ -66,11 +66,22 @@ class _PinScreenState extends State<PinScreen> {
         final isActive = await DbConfig().isUserActive(widget.userName);
 
         if (!isActive) {
-          setState(() {
-            _errorMessage = "Account is inactive. Please contact admin.";
-          });
-          _pinController.clear();
-          FocusScope.of(context).requestFocus(_pinFocusNode);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Account is inactive. Redirecting..."),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          
+          // Clear session and redirect
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('user_name');
+          
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const UserSelectionScreen()),
+          );
           return;
         }
 

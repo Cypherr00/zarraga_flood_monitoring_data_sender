@@ -124,6 +124,22 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
     setState(() => isLoading = true);
 
     try {
+      // 1. Check if user is still active
+      final isActive = await DbConfig().isUserActive(widget.userName);
+      if (!isActive) {
+        _showCustomSnackBar("Account is inactive. Please contact admin.", isError: true);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('user_name');
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => PinScreen(userName: widget.userName)),
+              (route) => false,
+        );
+        return;
+      }
+
+      // 2. Send data
       await DbConfig().sendData(
         userId: widget.userId,
         meters: meters,
