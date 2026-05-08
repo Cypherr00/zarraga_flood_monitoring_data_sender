@@ -214,17 +214,17 @@ class DbConfig {
       String messageAdvisory = "Threat Level: Moderate Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
 
       if (effectiveMeters >= 4) {
-        threatLevel = "Very High Threat";
-        messageAdvisory =
-        "Threat Level: Very High Threat - Immediate evacuation required. Follow emergency services instructions.";
-      } else if (effectiveMeters >= 3) {
         threatLevel = "High Threat";
         messageAdvisory =
-        "Threat Level: High Threat - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
-      } else if (effectiveMeters >= 2) {
+        "Threat Level: High Threat - Immediate evacuation required. Follow emergency services instructions.";
+      } else if (effectiveMeters >= 3) {
         threatLevel = "Moderate Threat";
         messageAdvisory =
-        "Threat Level: Moderate Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+        "Threat Level: Moderate Threat - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
+      } else if (effectiveMeters >= 2) {
+        threatLevel = "Low Threat";
+        messageAdvisory =
+        "Threat Level: Low Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
       }
 
       await _client.from('Alerts').insert({
