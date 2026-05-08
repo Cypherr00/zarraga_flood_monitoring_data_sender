@@ -55,7 +55,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     String l = level.toLowerCase();
     if (l.contains("very high")) return Colors.red.shade900;
     if (l.contains("high")) return Colors.orange.shade800;
-    if (l.contains("medium")) return Colors.amber.shade700;
+    if (l.contains("moderate")) return Colors.amber.shade700;
     return primaryBlue; // Default / Low Threat
   }
 

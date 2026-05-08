@@ -1,4 +1,3 @@
-// pin_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,12 +21,9 @@ class _PinScreenState extends State<PinScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Bringing back our brand colors
   final Color primaryBlue = const Color(0xFF0D47A1);
   final Color lightBlueBg = const Color(0xFFE3F2FD);
-
-  // App Version (You can update this manually, or use the package_info_plus plugin later)
-  final String appVersion = "v1.0.5";
+  final String appVersion = "v1.0.6";
 
   @override
   void initState() {
@@ -50,7 +46,6 @@ class _PinScreenState extends State<PinScreen> {
   }
 
   Future<void> _verifyPin() async {
-    // Prevent double-firing from the listener
     if (_isLoading) return;
 
     setState(() {
@@ -60,18 +55,31 @@ class _PinScreenState extends State<PinScreen> {
     _pinFocusNode.unfocus();
 
     try {
+      // 1. Verify PIN
       final isValid = await DbConfig().verifyPin(
         widget.userName,
         _pinController.text.trim(),
       );
 
       if (isValid) {
+        // 2. Check if the user is active
+        final isActive = await DbConfig().isUserActive(widget.userName);
+
+        if (!isActive) {
+          setState(() {
+            _errorMessage = "Account is inactive. Please contact admin.";
+          });
+          _pinController.clear();
+          FocusScope.of(context).requestFocus(_pinFocusNode);
+          return;
+        }
+
+        // 3. Login success logic
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_name', widget.userName);
 
         final userId = await DbConfig().getIdUsingUserName(widget.userName);
 
-        // ALWAYS check mounted immediately before context usage after an await
         if (!mounted) return;
 
         Navigator.pushReplacement(
@@ -129,7 +137,6 @@ class _PinScreenState extends State<PinScreen> {
       backgroundColor: lightBlueBg,
       body: Stack(
         children: [
-          // Main Content
           Center(
             child: SingleChildScrollView(
               child: Card(
@@ -144,7 +151,6 @@ class _PinScreenState extends State<PinScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Branded Icon
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -154,7 +160,6 @@ class _PinScreenState extends State<PinScreen> {
                         child: Icon(Icons.lock_outline, size: 48, color: primaryBlue),
                       ),
                       const SizedBox(height: 20),
-
                       Text(
                         "Welcome back,",
                         style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
@@ -167,16 +172,12 @@ class _PinScreenState extends State<PinScreen> {
                           color: primaryBlue,
                         ),
                       ),
-
                       const SizedBox(height: 32),
-
                       const Text(
                         "Enter your 4-digit PIN",
                         style: TextStyle(fontSize: 14, color: Colors.black54),
                       ),
                       const SizedBox(height: 16),
-
-                      // PIN input
                       SizedBox(
                         width: screenSize.width * 0.55,
                         child: TextField(
@@ -205,8 +206,6 @@ class _PinScreenState extends State<PinScreen> {
                           ),
                         ),
                       ),
-
-                      // Reserved space for loader/error to prevent UI jumping
                       SizedBox(
                         height: 48,
                         child: Center(
@@ -215,16 +214,16 @@ class _PinScreenState extends State<PinScreen> {
                               : _errorMessage != null
                               ? Text(
                             _errorMessage!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.w500),
+                            style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500),
                             textAlign: TextAlign.center,
                           )
                               : const SizedBox.shrink(),
                         ),
                       ),
-
                       const Divider(height: 32),
-
-                      // Secondary subtle action
                       TextButton.icon(
                         onPressed: _changeUser,
                         icon: const Icon(Icons.swap_horiz, size: 18),
@@ -239,8 +238,6 @@ class _PinScreenState extends State<PinScreen> {
               ),
             ),
           ),
-
-          // Version Number overlay
           Positioned(
             bottom: 16,
             right: 16,

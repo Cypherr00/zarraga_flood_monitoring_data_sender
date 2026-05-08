@@ -31,17 +31,33 @@ class DbConfig {
     }
   }
 
-  // Verify pin for a user
   Future<bool> verifyPin(String userName, String pin) async {
-    final response = await _client
-        .from('user')
-        .select('pin')
-        .eq('user_name', userName)
-        .maybeSingle();
-
-    if (response == null) return false;
-    return response['pin'] == pin;
+    try {
+      final res = await _client
+          .from('user')
+          .select()
+          .eq('user_name', userName)
+          .eq('pin', pin)
+          .maybeSingle();
+      return res != null;
+    } catch (_) {
+      return false;
+    }
   }
+
+  Future<bool> isUserActive(String userName) async {
+    try {
+      final res = await _client
+          .from('user')
+          .select('is_active')
+          .eq('user_name', userName)
+          .maybeSingle();
+      return res != null && res['is_active'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
 
   Future<int> getIdUsingUserName(String userName) async {
     final response = await _client
@@ -194,8 +210,8 @@ class DbConfig {
 
     // Only create alerts for meters > 2
     if (effectiveMeters >= 2) {
-      String threatLevel = "Medium Threat";
-      String messageAdvisory = "Threat Level: Medium Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+      String threatLevel = "Moderate Threat";
+      String messageAdvisory = "Threat Level: Moderate Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
 
       if (effectiveMeters >= 4) {
         threatLevel = "Very High Threat";
@@ -206,9 +222,9 @@ class DbConfig {
         messageAdvisory =
         "Threat Level: High Threat - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
       } else if (effectiveMeters >= 2) {
-        threatLevel = "Medium Threat";
+        threatLevel = "Moderate Threat";
         messageAdvisory =
-        "Threat Level: Medium Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+        "Threat Level: Moderate Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
       }
 
       await _client.from('Alerts').insert({
