@@ -210,21 +210,23 @@ class DbConfig {
 
     // Only create alerts for meters > 2
     if (effectiveMeters >= 2) {
-      String threatLevel = "Moderate Threat";
-      String messageAdvisory = "Threat Level: Moderate Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+      String threatLevel = "Low Flood Risk";
+      String messageAdvisory = "Water level is within safe range. Continue monitoring updates.";
 
-      if (effectiveMeters >= 4) {
-        threatLevel = "High Threat";
+      if (effectiveMeters >= 4.1) {
+        threatLevel = "Extreme Flood Emergency";
         messageAdvisory =
-        "Threat Level: High Threat - Immediate evacuation required. Follow emergency services instructions.";
+        "Water levels have exceeded the critical limit. Severe and potentially dangerous flooding conditions may already be occurring. \n Evacuate immediately and follow emergency instructions.";
+      } else if (effectiveMeters >= 4) {
+        threatLevel = "Severe Flood Risk";
+        messageAdvisory =
+        "Severe flooding conditions may already be occurring. \nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
       } else if (effectiveMeters >= 3) {
-        threatLevel = "Moderate Threat";
-        messageAdvisory =
-        "Threat Level: Moderate Threat - Avoid flood-prone areas and secure belongings. Be ready to evacuate if necessary.";
-      } else if (effectiveMeters >= 2) {
-        threatLevel = "Low Threat";
-        messageAdvisory =
-        "Threat Level: Low Threat - Minor flooding in low-lying areas is possible. Stay informed and monitor local weather updates.";
+        threatLevel = "Moderate Flood Risk";
+        messageAdvisory = "Flooding may already be affecting vulnerable areas. \nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
+      }else if (effectiveMeters >= 2) {
+        threatLevel = "Low Flood Risk";
+        messageAdvisory = "Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
       }
 
       await _client.from('Alerts').insert({

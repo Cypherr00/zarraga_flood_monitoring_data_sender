@@ -1,6 +1,7 @@
 // history_screen.dart
-import 'dart:async'; // Needed for the Timer
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'db_config.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -13,9 +14,8 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   late Future<List<Map<String, dynamic>>> _floodHistory;
   String _filter = "1d";
-  Timer? _refreshTimer; // The auto-refresh timer
+  Timer? _refreshTimer;
 
-  // Brand Colors
   final Color primaryBlue = const Color(0xFF0D47A1);
   final Color lightBlueBg = const Color(0xFFE3F2FD);
 
@@ -24,7 +24,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.initState();
     _loadData();
 
-    // Auto-refresh the history every 10 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       _loadData();
     });
@@ -32,7 +31,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   void dispose() {
-    // Always cancel timers when leaving the screen to save battery
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -51,12 +49,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
-  Color _getThreatColor(String level) {
-    String l = level.toLowerCase();
-    if (l.contains("very high")) return Colors.red.shade900;
-    if (l.contains("high")) return Colors.orange.shade800;
-    if (l.contains("moderate")) return Colors.amber.shade700;
-    return primaryBlue; // Default / Low Threat
+  Color _getThreatColor(double meters) {
+    if (meters >= 4.1) return Colors.redAccent;
+    if (meters >= 4.0) return Colors.orange.shade800;
+    if (meters >= 3.0) return Colors.amber.shade700;
+    if (meters >= 2.0) return primaryBlue;
+    return Colors.grey.shade600;
   }
 
   @override
@@ -64,7 +62,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
-          padding: const EdgeInsets.all(10.0), // Adds breathing room around the logo
+          padding: const EdgeInsets.all(10.0),
           child: Image.asset('assets/logo.png', fit: BoxFit.contain),
         ),
         title: const Text("Flood Level History"),
@@ -72,7 +70,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       body: Column(
         children: [
-          // Styled Filter Section
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
@@ -124,7 +121,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
               future: _floodHistory,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  // Only show loading spinner on first load, not during auto-refresh
                   return const Center(child: CircularProgressIndicator());
                 }
 
@@ -150,11 +146,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemBuilder: (context, index) {
                       final record = history[index];
 
-                      // Data Handling
                       final meters = (record['meters'] as num?)?.toStringAsFixed(1) ?? "0.0";
                       final user = record['user']?['user_name'] ?? "Unknown";
 
-                      // Robust alert parsing logic
+                      // FIX: parse then convert to local time
+                      final DateTime rawDate = DateTime.parse(record['created_at'].toString()).toLocal();
+                      final String formattedDate = DateFormat('MMM dd, yyyy').format(rawDate);
+                      final String formattedTime = DateFormat('hh:mm a').format(rawDate);
+
                       final dynamic alertRaw = record['alert'] ?? record['Alerts'] ?? record['alerts'];
                       Map<String, dynamic>? alertMap;
 
@@ -168,7 +167,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       final threat = alertMap?['threat_level']?.toString() ?? "Normal";
                       final advisory = alertMap?['message_advisory']?.toString() ?? "";
 
-                      final threatColor = _getThreatColor(threat);
+                      final metersNum = (record['meters'] as num?)?.toDouble() ?? 0.0;
+                      final threatColor = _getThreatColor(metersNum);
 
                       return Card(
                         elevation: 0,
@@ -180,9 +180,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         child: ExpansionTile(
                           shape: const RoundedRectangleBorder(side: BorderSide.none),
                           leading: CircleAvatar(
-                            // Locked to primaryBlue to avoid the "period" look
                             backgroundColor: primaryBlue.withOpacity(0.1),
-                            child: Icon(Icons.water_drop, color: primaryBlue),
+                            child: Icon(Icons.water_drop, color: _getThreatColor(metersNum)),
                           ),
                           title: Text("$meters m",
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primaryBlue)),
@@ -191,13 +190,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // Text stays colored based on threat level
                               Text(threat,
                                   style: TextStyle(color: threatColor, fontWeight: FontWeight.bold, fontSize: 12)),
                               const SizedBox(height: 4),
                               Text(
-                                record['created_at'].toString().split('T')[0], // Extract YYYY-MM-DD
-                                style: const TextStyle(fontSize: 11, color: Colors.black45),
+                                formattedDate,
+                                style: const TextStyle(fontSize: 10, color: Colors.black45),
+                              ),
+                              Text(
+                                formattedTime,
+                                style: const TextStyle(fontSize: 10, color: Colors.black45, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),

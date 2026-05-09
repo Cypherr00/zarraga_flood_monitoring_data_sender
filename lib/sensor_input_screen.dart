@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; // Added for date formatting
 import 'db_config.dart';
 import 'pin_screen.dart';
 
@@ -274,6 +275,13 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- FORMATTING LOGIC FOR LATEST READING ---
+    String formattedTime = "No data";
+    if (latest != null) {
+      final DateTime rawDate = DateTime.parse(latest!['created_at'].toString()).toLocal();
+      formattedTime = DateFormat('MMM dd, hh:mm a').format(rawDate);
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
@@ -423,7 +431,7 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text("By: ${latest!['user']['user_name']}", style: const TextStyle(color: Colors.white, fontSize: 12)),
-                        Text("${latest!['created_at']}", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        Text(formattedTime, style: const TextStyle(color: Colors.white70, fontSize: 10)),
                       ],
                     ),
                   ],
