@@ -50,11 +50,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Color _getThreatColor(double meters) {
-    if (meters >= 4.1) return Colors.redAccent;
-    if (meters >= 4.0) return Colors.orange.shade800;
-    if (meters >= 3.0) return Colors.amber.shade700;
-    if (meters >= 2.0) return primaryBlue;
-    return Colors.grey.shade600;
+    if (meters >= 5.0) return const Color(0xFF4A0000); // Emergency Overflow (Maroon)
+    if (meters >= 4.1) return const Color(0xFFC62828); // Alert Level 3 (Red)
+    if (meters >= 4.0) return const Color(0xFFEF6C00); // Alert Level 2 (Orange)
+    if (meters >= 3.0) return const Color(0xFFF9A825); // Alert Level 1 (Amber)
+    return const Color(0xFF2E7D32);                   // Normal Condition (Green)
   }
 
   @override
@@ -125,31 +125,45 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 }
 
                 final history = snapshot.data ?? [];
+
+                // --- REFRESHABLE EMPTY STATE FIX ---
                 if (history.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.history_toggle_off, size: 64, color: Colors.blue.shade100),
-                        const SizedBox(height: 16),
-                        const Text("No history records found", style: TextStyle(color: Colors.black54)),
+                  return RefreshIndicator(
+                    onRefresh: () async => _loadData(),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(), // Forces scrolling even if empty
+                      slivers: [
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.history_toggle_off, size: 64, color: Colors.blue.shade100),
+                              const SizedBox(height: 16),
+                              const Text("No history records found", style: TextStyle(color: Colors.black54)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   );
                 }
 
+                // --- EXISTING LIST VIEW ---
                 return RefreshIndicator(
                   onRefresh: () async => _loadData(),
                   child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(), // Good practice to include here too
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     itemCount: history.length,
                     itemBuilder: (context, index) {
                       final record = history[index];
 
-                      final meters = (record['meters'] as num?)?.toStringAsFixed(1) ?? "0.0";
+                      final double metersNum = (double.tryParse(record['meters'].toString()) ?? 0.0);
+                      final String metersDisplay = metersNum.toStringAsFixed(2);
+
                       final user = record['user']?['user_name'] ?? "Unknown";
 
-                      // FIX: parse then convert to local time
                       final DateTime rawDate = DateTime.parse(record['created_at'].toString()).toLocal();
                       final String formattedDate = DateFormat('MMM dd, yyyy').format(rawDate);
                       final String formattedTime = DateFormat('hh:mm a').format(rawDate);
@@ -167,7 +181,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       final threat = alertMap?['threat_level']?.toString() ?? "Normal";
                       final advisory = alertMap?['message_advisory']?.toString() ?? "";
 
-                      final metersNum = (record['meters'] as num?)?.toDouble() ?? 0.0;
                       final threatColor = _getThreatColor(metersNum);
 
                       return Card(
@@ -178,30 +191,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           shape: const RoundedRectangleBorder(side: BorderSide.none),
                           leading: CircleAvatar(
                             backgroundColor: primaryBlue.withOpacity(0.1),
-                            child: Icon(Icons.water_drop, color: _getThreatColor(metersNum)),
+                            child: Icon(Icons.water_drop, color: threatColor),
                           ),
-                          title: Text("$meters m",
+                          title: Text("$metersDisplay m",
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primaryBlue)),
                           subtitle: Text("By: $user", style: const TextStyle(fontSize: 12)),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(threat,
-                                  style: TextStyle(color: threatColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                              const SizedBox(height: 4),
-                              Text(
-                                formattedDate,
-                                style: const TextStyle(fontSize: 10, color: Colors.black45),
-                              ),
-                              Text(
-                                formattedTime,
-                                style: const TextStyle(fontSize: 10, color: Colors.black45, fontWeight: FontWeight.w500),
-                              ),
-                            ],
+                          trailing: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 190),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  threat,
+                                  textAlign: TextAlign.right,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: threatColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formattedDate,
+                                  style: const TextStyle(fontSize: 10, color: Colors.black45),
+                                ),
+                                Text(
+                                  formattedTime,
+                                  style: const TextStyle(fontSize: 10, color: Colors.black45, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
                           ),
                           children: [
                             if (advisory.isNotEmpty)

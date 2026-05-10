@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import 'pin_screen.dart';
 import 'user_selection_screen.dart';
@@ -100,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       backgroundColor: primaryBlue,
       body: Stack(
         children: [
-          // Center Logo and App Name
+          // Center Logo, App Name, and Loading Indicator
           Center(
             child: FadeTransition(
               opacity: _fadeAnimation,
@@ -109,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 children: [
                   // Logo Container using custom asset
                   Container(
-                    padding: const EdgeInsets.all(20), // Adjusted padding slightly for image
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white.withOpacity(0.1),
@@ -118,10 +119,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       'assets/logo.png',
                       width: 90,
                       height: 90,
-                      fit: BoxFit.contain, // Ensures the PNG doesn't stretch
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: 24),
+
                   // App Title
                   const Text(
                     'FloodTwin',
@@ -133,6 +135,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                   ),
                   const SizedBox(height: 8),
+
                   // Subtitle
                   Text(
                     'Water Level Monitoring',
@@ -143,24 +146,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
 
-          // Bottom Loading Indicator
-          Positioned(
-            bottom: 48,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8)),
-                ),
+                  // --- MOVED LOADING INDICATOR HERE ---
+                  const SizedBox(height: 40), // Spacing between text and ripple
+                  SpinKitRipple(
+                    color: Colors.white.withOpacity(0.8),
+                    size: 50.0,
+                    borderWidth: 3.0,
+                  ),
+                ],
               ),
             ),
           ),

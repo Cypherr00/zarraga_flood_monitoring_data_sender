@@ -23,7 +23,7 @@ class _PinScreenState extends State<PinScreen> {
 
   final Color primaryBlue = const Color(0xFF0D47A1);
   final Color lightBlueBg = const Color(0xFFE3F2FD);
-  final String appVersion = "v1.0.6";
+  final String appVersion = "v1.0.7";
 
   @override
   void initState() {

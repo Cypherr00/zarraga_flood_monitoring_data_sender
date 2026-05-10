@@ -423,7 +423,8 @@ class _SensorInputScreenState extends State<SensorInputScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "${latest!['meters']} m",
+                      // Parses the value safely and locks it to 2 decimal places
+                      "${(double.tryParse(latest!['meters'].toString()) ?? 0.0).toStringAsFixed(2)} m",
                       style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     const Divider(color: Colors.white24, height: 24),

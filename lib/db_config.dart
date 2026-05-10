@@ -215,18 +215,16 @@ class DbConfig {
 
       if (effectiveMeters >= 4.1) {
         threatLevel = "Extreme Flood Emergency";
-        messageAdvisory =
-        "Water levels have exceeded the critical limit. Severe and potentially dangerous flooding conditions may already be occurring. \n Evacuate immediately and follow emergency instructions.";
+        messageAdvisory = "EMERGENCY OVERFLOW LEVEL – EVACUATE IMMEDIATELY\n\nWater levels have exceeded the critical limit. Severe and potentially dangerous flooding conditions may already be occurring. \n\nEvacuate immediately and follow emergency instructions.";
       } else if (effectiveMeters >= 4) {
         threatLevel = "Severe Flood Risk";
-        messageAdvisory =
-        "Severe flooding conditions may already be occurring. \nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
+        messageAdvisory = "ALERT LEVEL 3 – EVACUATE\n\nSevere flooding conditions may already be occurring. \n\nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
       } else if (effectiveMeters >= 3) {
         threatLevel = "Moderate Flood Risk";
-        messageAdvisory = "Flooding may already be affecting vulnerable areas. \nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
+        messageAdvisory = "ALERT LEVEL 2 – PREPARE TO EVACUATE\n\nFlooding may already be affecting vulnerable areas. \n\nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
       }else if (effectiveMeters >= 2) {
         threatLevel = "Low Flood Risk";
-        messageAdvisory = "Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
+        messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\n\nMinor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
       }
 
       await _client.from('Alerts').insert({
