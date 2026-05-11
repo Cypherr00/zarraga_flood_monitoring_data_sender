@@ -211,20 +211,20 @@ class DbConfig {
     // Only create alerts for meters > 2
     if (effectiveMeters >= 2) {
       String threatLevel = "Low Flood Risk";
-      String messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\n\nAdvisory: Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
+      String messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\nAdvisory: Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
 
       if (effectiveMeters >= 4.1) {
         threatLevel = "Extreme Flood Emergency";
         messageAdvisory = "EMERGENCY OVERFLOW LEVEL – EVACUATE IMMEDIATELY\nAdvisory: Water levels have exceeded the critical limit. Severe and potentially dangerous flooding conditions may already be occurring. \n\nEvacuate immediately and follow emergency instructions.";
       } else if (effectiveMeters >= 4) {
         threatLevel = "Severe Flood Risk";
-        messageAdvisory = "ALERT LEVEL 3 – EVACUATE\n\nAdvisory: Severe flooding conditions may already be occurring. \nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
+        messageAdvisory = "ALERT LEVEL 3 – EVACUATE\nAdvisory: Severe flooding conditions may already be occurring. \nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
       } else if (effectiveMeters >= 3) {
         threatLevel = "Moderate Flood Risk";
-        messageAdvisory = "ALERT LEVEL 2 – PREPARE TO EVACUATE\n\nAdvisory: Flooding may already be affecting vulnerable areas. \nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
+        messageAdvisory = "ALERT LEVEL 2 – PREPARE TO EVACUATE\nAdvisory: Flooding may already be affecting vulnerable areas. \nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
       }else if (effectiveMeters >= 2) {
         threatLevel = "Low Flood Risk";
-        messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\n\nAdvisory: Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
+        messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\nAdvisory: Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
       }
 
       await _client.from('Alerts').insert({
