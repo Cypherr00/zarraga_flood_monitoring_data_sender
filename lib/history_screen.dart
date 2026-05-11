@@ -49,12 +49,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
+  // --- REVERTED BACK TO YOUR ORIGINAL LOGIC EXACTLY ---
   Color _getThreatColor(double meters) {
-    if (meters >= 5.0) return const Color(0xFF4A0000); // Emergency Overflow (Maroon)
-    if (meters >= 4.1) return const Color(0xFFC62828); // Alert Level 3 (Red)
-    if (meters >= 4.0) return const Color(0xFFEF6C00); // Alert Level 2 (Orange)
-    if (meters >= 3.0) return const Color(0xFFF9A825); // Alert Level 1 (Amber)
-    return const Color(0xFF2E7D32);                   // Normal Condition (Green)
+    if (meters >= 4.1) return Color(0xFF950000);
+    if (meters >= 4.0) return Color(0xFFC62828);
+    if (meters >= 3.0) return Color(0xFFEF6C00);
+    if (meters >= 2.0) return Color(0xFFF9A825);
+    return Color(0xFF2E7D32);
   }
 
   @override
@@ -126,12 +127,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 final history = snapshot.data ?? [];
 
-                // --- REFRESHABLE EMPTY STATE FIX ---
+                // --- REFRESHABLE EMPTY STATE UI FIX ---
                 if (history.isEmpty) {
                   return RefreshIndicator(
                     onRefresh: () async => _loadData(),
                     child: CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(), // Forces scrolling even if empty
+                      physics: const AlwaysScrollableScrollPhysics(),
                       slivers: [
                         SliverFillRemaining(
                           hasScrollBody: false,
@@ -153,7 +154,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 return RefreshIndicator(
                   onRefresh: () async => _loadData(),
                   child: ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(), // Good practice to include here too
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     itemCount: history.length,
                     itemBuilder: (context, index) {
@@ -191,6 +192,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: ExpansionTile(
+                          // --- CARD HEIGHT UI FIX ---
                           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           shape: const RoundedRectangleBorder(side: BorderSide.none),
                           leading: CircleAvatar(
@@ -200,6 +202,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           title: Text("$metersDisplay m",
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: primaryBlue)),
                           subtitle: Text("By: $user", style: const TextStyle(fontSize: 12)),
+
+                          // --- RESPONSIVE LABEL UI FIX ---
                           trailing: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 190),
                             child: Column(
