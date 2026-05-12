@@ -245,7 +245,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     color: lightBlueBg,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Text("Advisory: $advisory",
+                                  child: Text("$advisory",
                                       style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black87)),
                                 ),
                               ),
