@@ -209,22 +209,25 @@ class DbConfig {
     final waterLevelId = insertedWaterLevel['id'];
 
     // Only create alerts for meters > 2
-    if (effectiveMeters >= 2) {
-      String threatLevel = "Low Flood Risk";
-      String messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\nAdvisory: Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
+
+      String threatLevel = "";
+      String messageAdvisory = "";
 
       if (effectiveMeters >= 4.1) {
         threatLevel = "Extreme Flood Emergency";
-        messageAdvisory = "EMERGENCY OVERFLOW LEVEL – EVACUATE IMMEDIATELY\nAdvisory: Water levels have exceeded the critical limit. Severe and potentially dangerous flooding conditions may already be occurring. \n\nEvacuate immediately and follow emergency instructions.";
+        messageAdvisory = "EMERGENCY OVERFLOW LEVEL\n\nEVACUATE IMMEDIATELY\n\nWater levels have exceeded the critical limit.\n\nSevere and potentially dangerous flooding conditions may already be occurring.\n\nEvacuate immediately and follow emergency instructions.";
       } else if (effectiveMeters >= 4) {
         threatLevel = "Severe Flood Risk";
-        messageAdvisory = "ALERT LEVEL 3 – EVACUATE\nAdvisory: Severe flooding conditions may already be occurring. \nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
+        messageAdvisory = "ALERT LEVEL 3\n\nEVACUATE\n\nSevere flooding conditions may already be occurring.\n\nResidents in dangerous and flood-prone areas are strongly advised to evacuate and follow MDRRMO instructions immediately.";
       } else if (effectiveMeters >= 3) {
         threatLevel = "Moderate Flood Risk";
-        messageAdvisory = "ALERT LEVEL 2 – PREPARE TO EVACUATE\nAdvisory: Flooding may already be affecting vulnerable areas. \nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
+        messageAdvisory = "ALERT LEVEL 2\n\nPREPARE TO EVACUATE\n\nFlooding may already be affecting vulnerable areas.\n\nResidents in dangerous and low-lying areas should prepare for possible evacuation and monitor official advisories.";
       }else if (effectiveMeters >= 2) {
         threatLevel = "Low Flood Risk";
-        messageAdvisory = "ALERT LEVEL 1 – STAY ALERT\nAdvisory: Minor flooding may already be occurring in low-lying areas. Stay alert and monitor official advisories.";
+        messageAdvisory = "ALERT LEVEL 1\n\nSTAY ALERT\n\nMinor flooding may already be occurring in low-lying areas.\n\nStay alert and monitor official advisories.";
+      }else if (effectiveMeters < 2) {
+        threatLevel = "No Flood Risk";
+        messageAdvisory = "NORMAL CONDITION\n\nWater Level is within safe range. Continue monioring updates.";
       }
 
       await _client.from('Alerts').insert({
@@ -234,7 +237,7 @@ class DbConfig {
         'meters': effectiveMeters,
         'is_overflow': isOverflow
       });
-    }
+
   }
 
 
